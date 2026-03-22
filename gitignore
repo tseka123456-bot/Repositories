@@ -1,0 +1,13 @@
+# 敏感文件
+config/project_config.json
+*.key
+
+# 數據文件
+*.parquet
+data/
+backups/
+
+# Python 緩存
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
