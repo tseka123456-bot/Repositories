@@ -137,7 +137,7 @@ if __name__ == "__main__":
     print("\n🔬 測試物理公式")
     physics = AtmosphericPhysics()
     Td = physics.dew_point(25, 80)
-    print(f"溫度25°C、濕度80%時的露點: {Td:.1f}°C")
+    print(f"溫度24.5°C、濕度80%時的露點: {Td:.1f}°C")
     
     # 測試氣候數據
     print("\n🇭🇰 香港氣候基準")
@@ -146,3 +146,22 @@ if __name__ == "__main__":
     print(f"當前月份 {current_month}月: 平均溫度 {climate['avg_temp']}°C")
     
     print("\n✅ 系統測試完成!")
+
+# 1. 下載你的代碼
+!git clone https://github.com/tseka123456-bot/Repositories.git
+%cd Repositories
+
+# 2. 編輯文件（用 Python 代碼修改）
+with open('weather_system.py', 'r') as f:
+    content = f.read()
+    print(content[:500])  # 查看前500個字符
+
+# 3. 修改內容
+new_content = content.replace("20.5", "25.5")  # 舉例：修改溫度
+
+# 4. 保存
+with open('weather_system.py', 'w') as f:
+    f.write(new_content)
+
+# 5. 運行測試
+!python weather_system.py
