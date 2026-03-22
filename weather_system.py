@@ -165,3 +165,4 @@ with open('weather_system.py', 'w') as f:
 
 # 5. 運行測試
 !python weather_system.py
+print("\n✅ 修改完成！")
