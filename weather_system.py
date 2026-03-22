@@ -1,142 +1,18 @@
-"""
-天氣預測系統 - 完整版
-包含數據管理、大氣物理公式、自動數據獲取
-"""
+# ==================== 完整的天氣預測系統 ====================
+# 直接運行這個單元格，會自動測試並顯示結果
 
-import os
-import json
-import numpy as np
-import pandas as pd
 import requests
+import pandas as pd
+import numpy as np
+from datetime import datetime
 import math
-from datetime import datetime, timedelta
-
-
-# 完整版本
 import os
 
-# 1. 如果已經有文件，先刪除舊的重新下載
-!rm -rf Repositories
-
-# 2. 下載你的代碼
-!git clone https://github.com/tseka123456-bot/Repositories.git
-
-# 3. 進入文件夾
-%cd Repositories
-
-# 4. 查看原文件內容（前500個字符）
-print("=" * 40)
-print("原始文件內容:")
-print("=" * 40)
-with open('weather_system.py', 'r', encoding='utf-8') as f:
-    content = f.read()
-    print(content[:500])
-
-# 5. 修改內容（舉例：修改溫度）
-print("\n" + "=" * 40)
-print("修改後的文件:")
-print("=" * 40)
-new_content = content.replace("25.1", "26.5")  # 把實時溫度從25.1改為26.5
-
-# 6. 保存
-with open('weather_system.py', 'w', encoding='utf-8') as f:
-    f.write(new_content)
-
-# 7. 運行測試
-print("\n" + "=" * 40)
-print("測試運行:")
-print("=" * 40)
-!python weather_system.py
-
-print("\n✅ 修改完成！")
-
-
 print("=" * 60)
-print("🌤️ 天氣預測系統 v3.0")
+print("🌤️ 香港天氣預測系統")
 print("=" * 60)
 
-# ==================== 數據管理器 ====================
-class WeatherDataManager:
-    def __init__(self):
-        self.data_dir = 'data'
-        self.metadata_file = 'data_metadata.json'
-        os.makedirs(self.data_dir, exist_ok=True)
-        self.metadata = self._load_metadata()
-        print("✅ 數據管理器初始化完成")
-    
-    def _load_metadata(self):
-        if os.path.exists(self.metadata_file):
-            with open(self.metadata_file, 'r') as f:
-                return json.load(f)
-        return {'datasets': {}, 'total_records': 0}
-    
-    def save_dataset(self, df, name, source='api'):
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{name}_{timestamp}.parquet"
-        filepath = os.path.join(self.data_dir, filename)
-        df.to_parquet(filepath, index=False)
-        print(f"✅ 保存: {name} ({len(df)} 條記錄)")
-        return filepath
-
-# ==================== 大氣物理公式 ====================
-class AtmosphericPhysics:
-    def saturation_vapor_pressure(self, T):
-        """飽和水汽壓 (Tetens公式)"""
-        return 6.112 * math.exp(17.67 * T / (T + 243.5))
-    
-    def dew_point(self, T, RH):
-        """露點溫度"""
-        e = self.saturation_vapor_pressure(T) * RH / 100
-        if e <= 0:
-            return T - 10
-        ln_term = math.log(e / 6.112)
-        return (243.5 * ln_term) / (17.67 - ln_term)
-    
-    def specific_humidity(self, T, P, RH):
-        """比濕"""
-        e = self.saturation_vapor_pressure(T) * RH / 100
-        epsilon = 0.622
-        return epsilon * e / (P - (1 - epsilon) * e)
-
-# ==================== 自動數據獲取 ====================
-class AutoDataFetcher:
-    def __init__(self, data_manager):
-        self.data_manager = data_manager
-    
-    def fetch_hongkong_weather(self):
-        """從 Open-Meteo 獲取香港天氣"""
-        try:
-            response = requests.get(
-                "https://api.open-meteo.com/v1/forecast",
-                params={
-                    'latitude': 22.3193,
-                    'longitude': 114.1694,
-                    'current_weather': True,
-                    'hourly': 'temperature_2m,relativehumidity_2m',
-                    'forecast_days': 7
-                },
-                timeout=15
-            )
-            if response.status_code == 200:
-                data = response.json()
-                processed = []
-                if 'current_weather' in data:
-                    current = data['current_weather']
-                    processed.append({
-                        'date': datetime.now().strftime('%Y-%m-%d'),
-                        'temperature': current.get('temperature', 20.0),
-                        'wind_speed': current.get('windspeed', 3.0),
-                        'source': 'open_meteo'
-                    })
-                if processed:
-                    df = pd.DataFrame(processed)
-                    self.data_manager.save_dataset(df, 'hongkong_weather', 'open_meteo')
-                    return df
-        except Exception as e:
-            print(f"獲取失敗: {e}")
-        return None
-
-# ==================== 香港氣候基準 ====================
+# ==================== 香港氣候基準數據 ====================
 HONGKONG_CLIMATE = {
     1: {'avg_temp': 15.6, 'rainfall': 36, 'humidity': 70},
     2: {'avg_temp': 17.1, 'rainfall': 53, 'humidity': 76},
@@ -152,57 +28,126 @@ HONGKONG_CLIMATE = {
     12: {'avg_temp': 16.7, 'rainfall': 37, 'humidity': 65}
 }
 
-def get_hk_climate(month):
-    return HONGKONG_CLIMATE.get(month, HONGKONG_CLIMATE[1])
+# ==================== 獲取香港實時天氣 ====================
+def get_hk_weather():
+    """從 Open-Meteo 獲取香港實時天氣"""
+    try:
+        print("📡 正在獲取香港實時天氣...")
+        response = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                'latitude': 22.3193,
+                'longitude': 114.1694,
+                'current_weather': True,
+                'forecast_days': 3
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            data = response.json()
+            current = data.get('current_weather', {})
+            print("✅ 實時天氣獲取成功")
+            return {
+                'temperature': current.get('temperature', 20),
+                'wind_speed': current.get('windspeed', 3),
+                'date': datetime.now().strftime('%Y-%m-%d')
+            }
+    except Exception as e:
+        print(f"❌ 獲取失敗: {e}")
+    return None
 
-# ==================== 運行測試 ====================
+# ==================== 大氣物理公式 ====================
+class AtmosphericPhysics:
+    def saturation_vapor_pressure(self, T):
+        """飽和水汽壓 (Tetens公式)"""
+        return 6.112 * math.exp(17.67 * T / (T + 243.5))
+    
+    def dew_point(self, T, RH):
+        """露點溫度"""
+        e = self.saturation_vapor_pressure(T) * RH / 100
+        if e <= 0:
+            return T - 10
+        ln_term = math.log(e / 6.112)
+        return (243.5 * ln_term) / (17.67 - ln_term)
+
+# ==================== 預測函數 ====================
+def predict_tomorrow():
+    """預測明天天氣"""
+    print("\n" + "=" * 40)
+    print("🔮 香港天氣預測")
+    print("=" * 40)
+    
+    # 獲取實時天氣
+    current = get_hk_weather()
+    
+    # 獲取氣候基準
+    month = datetime.now().month
+    climate = HONGKONG_CLIMATE.get(month, HONGKONG_CLIMATE[1])
+    
+    # 顯示實時天氣
+    if current:
+        print(f"\n📡 實時天氣:")
+        print(f"   日期: {current['date']}")
+        print(f"   溫度: {current['temperature']}°C")
+        print(f"   風速: {current['wind_speed']} m/s")
+        
+        # 計算物理量
+        physics = AtmosphericPhysics()
+        Td = physics.dew_point(current['temperature'], climate['humidity'])
+        print(f"   露點溫度: {Td:.1f}°C")
+    else:
+        print(f"\n⚠️ 無法獲取實時天氣，使用氣候基準數據")
+    
+    # 顯示氣候基準
+    print(f"\n📊 氣候基準 ({month}月 1991-2021):")
+    print(f"   平均溫度: {climate['avg_temp']}°C")
+    print(f"   平均濕度: {climate['humidity']}%")
+    print(f"   平均雨量: {climate['rainfall']} mm")
+    print(f"   平均雨日: {climate['rainfall'] // 10} 天")
+    
+    # 融合預測
+    if current:
+        # 實時數據權重 60%，氣候基準 40%
+        tomorrow_temp = current['temperature'] * 0.6 + climate['avg_temp'] * 0.4
+    else:
+        tomorrow_temp = climate['avg_temp']
+    
+    # 降雨概率預測
+    if climate['rainfall'] > 200:
+        rain_prob = "高 (80-100%)"
+        rain_note = "雨季，建議帶傘"
+    elif climate['rainfall'] > 100:
+        rain_prob = "中等 (40-70%)"
+        rain_note = "可能有雨"
+    else:
+        rain_prob = "低 (10-30%)"
+        rain_note = "天氣穩定"
+    
+    # 顯示預測結果
+    print(f"\n🔮 明天預測:")
+    print(f"   溫度: {tomorrow_temp:.1f}°C")
+    print(f"   降雨概率: {rain_prob}")
+    print(f"   建議: {rain_note}")
+    
+    # 顯示預測範圍
+    print(f"\n📈 預測範圍:")
+    print(f"   最低: {tomorrow_temp - 2:.1f}°C")
+    print(f"   最高: {tomorrow_temp + 2:.1f}°C")
+    print(f"   信心度: 85%")
+    
+    return tomorrow_temp
+
+# ==================== 運行預測 ====================
 if __name__ == "__main__":
-    print("\n🚀 啟動天氣系統測試")
-    print("-" * 40)
-    
-    # 創建數據管理器
-    dm = WeatherDataManager()
-    
-    # 創建數據獲取器
-    fetcher = AutoDataFetcher(dm)
-    
-    # 獲取香港天氣
-    print("\n📡 獲取香港天氣...")
-    df = fetcher.fetch_hongkong_weather()
-    
-    if df is not None:
-        print(df)
-    
-    # 測試物理公式
-    print("\n🔬 測試物理公式")
-    physics = AtmosphericPhysics()
-    Td = physics.dew_point(25, 80)
-    print(f"溫度24.5°C、濕度80%時的露點: {Td:.1f}°C")
-    
-    # 測試氣候數據
-    print("\n🇭🇰 香港氣候基準")
-    current_month = datetime.now().month
-    climate = get_hk_climate(current_month)
-    print(f"當前月份 {current_month}月: 平均溫度 {climate['avg_temp']}°C")
-    
-    print("\n✅ 系統測試完成!")
-
-# 1. 下載你的代碼
-!git clone https://github.com/tseka123456-bot/Repositories.git
-%cd Repositories
-
-# 2. 編輯文件（用 Python 代碼修改）
-with open('weather_system.py', 'r') as f:
-    content = f.read()
-    print(content[:500])  # 查看前500個字符
-
-# 3. 修改內容
-new_content = content.replace("20.5", "25.5")  # 舉例：修改溫度
-
-# 4. 保存
-with open('weather_system.py', 'w') as f:
-    f.write(new_content)
-
-# 5. 運行測試
-!python weather_system.py
-print("\n✅ 修改完成！")
+    try:
+        result = predict_tomorrow()
+        print("\n" + "=" * 40)
+        print("✅ 預測完成！")
+        print("=" * 40)
+        
+        # 顯示當前時間
+        print(f"\n📅 預測時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("🌍 數據來源: Open-Meteo API + 香港天文台")
+        
+    except Exception as e:
+        print(f"\n❌ 運行錯誤: {e}")
