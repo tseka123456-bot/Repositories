@@ -11,6 +11,46 @@ import requests
 import math
 from datetime import datetime, timedelta
 
+
+# 完整版本
+import os
+
+# 1. 如果已經有文件，先刪除舊的重新下載
+!rm -rf Repositories
+
+# 2. 下載你的代碼
+!git clone https://github.com/tseka123456-bot/Repositories.git
+
+# 3. 進入文件夾
+%cd Repositories
+
+# 4. 查看原文件內容（前500個字符）
+print("=" * 40)
+print("原始文件內容:")
+print("=" * 40)
+with open('weather_system.py', 'r', encoding='utf-8') as f:
+    content = f.read()
+    print(content[:500])
+
+# 5. 修改內容（舉例：修改溫度）
+print("\n" + "=" * 40)
+print("修改後的文件:")
+print("=" * 40)
+new_content = content.replace("25.1", "26.5")  # 把實時溫度從25.1改為26.5
+
+# 6. 保存
+with open('weather_system.py', 'w', encoding='utf-8') as f:
+    f.write(new_content)
+
+# 7. 運行測試
+print("\n" + "=" * 40)
+print("測試運行:")
+print("=" * 40)
+!python weather_system.py
+
+print("\n✅ 修改完成！")
+
+
 print("=" * 60)
 print("🌤️ 天氣預測系統 v3.0")
 print("=" * 60)
